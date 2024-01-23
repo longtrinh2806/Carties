@@ -9,7 +9,7 @@ namespace AuctionService.Services
     public interface IAuctionService
     {
         Task<ResultModel> Delete(Guid id);
-        Task<ResultModel> Get();
+        Task<List<AuctionDto>> Get(string? date);
         Task<ResultModel> Get(Guid id);
         Task<ResultModel> Post(CreateAuctionDto request);
         Task<ResultModel> Put(Guid id, UpdateAuctionDto request);
@@ -23,42 +23,68 @@ namespace AuctionService.Services
             _context = context;
         }
 
-        public async Task<ResultModel> Get()
+        public async Task<List<AuctionDto>> Get(string? date)
         {
-            var auctions = await _context.Auctions
-                .Include(x => x.Item)
-                .OrderBy(x => x.Item.Make)
-                .ToListAsync();
 
-            List<AuctionDto> result = new();
-            
-            foreach (var auction in auctions)
+            var query = _context.Auctions.OrderBy(x => x.Item.Make).AsQueryable();
+
+            if (!string.IsNullOrEmpty(date))
             {
-                var auctionDto = new AuctionDto
-                {
-                    Id = auction.Id,
-                    CreatedAt = auction.CreatedAt,
-                    UpdatedAt = auction.UpdatedAt,
-                    AuctionEnd = auction.AuctionEnd,
-                    Seller = auction.Seller,
-                    Winner = auction.Winner,
-                    Make = auction.Item.Make,
-                    Model = auction.Item.Model,
-                    Year = auction.Item.Year,
-                    Color = auction.Item.Color,
-                    Mileage = auction.Item.Mileage,
-                    ImageUrl = auction.Item.ImageUrl,
-                    Status = auction.Status.ToString()
-                };
-                result.Add(auctionDto);
+                query.Where(x => x.UpdatedAt.CompareTo(DateTime.Parse(date).ToUniversalTime()) > 0);
             }
 
-            return new ResultModel
+            var auctionDtoList = await query.Select(x => new AuctionDto
             {
-                Data = result,
-                IsSucceed = true,
-                Message = "Get Succesfully"
-            };
+                Id = x.Id,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                AuctionEnd = x.AuctionEnd,
+                Seller = x.Seller,
+                Winner = x.Winner,
+                Make = x.Item.Make,
+                Model = x.Item.Model,
+                Year = x.Item.Year,
+                Color = x.Item.Color,
+                Mileage = x.Item.Mileage,
+                ImageUrl = x.Item.ImageUrl,
+                Status = x.Status.ToString()
+            }).ToListAsync();
+
+            //var auctions = await _context.Auctions
+            //    .Include(x => x.Item)
+            //    .OrderBy(x => x.Item.Make)
+            //    .ToListAsync(); 
+
+            //List<AuctionDto> result = new();
+
+            //foreach (var auction in auctions)
+            //{
+            //    var auctionDto = new AuctionDto
+            //    {
+            //        Id = auction.Id,
+            //        CreatedAt = auction.CreatedAt,
+            //        UpdatedAt = auction.UpdatedAt,
+            //        AuctionEnd = auction.AuctionEnd,
+            //        Seller = auction.Seller,
+            //        Winner = auction.Winner,
+            //        Make = auction.Item.Make,
+            //        Model = auction.Item.Model,
+            //        Year = auction.Item.Year,
+            //        Color = auction.Item.Color,
+            //        Mileage = auction.Item.Mileage,
+            //        ImageUrl = auction.Item.ImageUrl,
+            //        Status = auction.Status.ToString()
+            //    };
+            //    result.Add(auctionDto);
+            //}
+
+            //return new ResultModel
+            //{
+            //    Data = auctionDtoList,
+            //    IsSucceed = true,
+            //    Message = "Get Succesfully"
+            //};
+            return auctionDtoList;
         }
 
         public async Task<ResultModel> Get(Guid id)

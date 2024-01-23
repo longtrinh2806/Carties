@@ -18,12 +18,10 @@ namespace AuctionService.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllAuctions()
+        public async Task<IActionResult> GetAllAuctions([FromQuery] string? date)
         {
-            var result = await _auctionService.Get();
+            var result = await _auctionService.Get(date);
 
-            if (!result.IsSucceed)
-                return BadRequest(result);
             return Ok(result);
         }
 
